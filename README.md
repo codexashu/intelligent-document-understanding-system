@@ -8,6 +8,11 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-FF4B4B.svg?logo=streamlit)](https://streamlit.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-success?style=for-the-badge&logo=github)](https://codexashu.github.io/intelligent-document-understanding-system/)
+
+> ### 🌐 **Live Hosted Web Demo:**
+> 👉 **[https://codexashu.github.io/intelligent-document-understanding-system/](https://codexashu.github.io/intelligent-document-understanding-system/)**
+> *(Click the link to open and test the interactive Document AI application directly in your browser!)*
 
 An **End-to-End Deep Learning Document AI & Understanding System** for semi-structured and unstructured documents (Invoices, Receipts, Contracts, Forms, Resumes, and IDs). Combines **2D Spatial Layout Positional Embeddings**, **Computer Vision (CNN Backbones)**, and **Transformers** for state-of-the-art Document Layout Analysis, Key Information Extraction (KIE), Table Parsing, and Document Visual Question Answering (DocVQA).
 

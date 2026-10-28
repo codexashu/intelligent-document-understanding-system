@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intelligent Document Understanding System | Deep Learning Document AI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📄</text></svg>">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .canvas-container {
+      position: relative;
+      overflow: auto;
+      max-height: 720px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.5rem;
+    }
+    #docCanvas {
+      display: block;
+      margin: 0 auto;
+      cursor: crosshair;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-100">
+          <i data-lucide="file-text" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 leading-tight">Intelligent Document Understanding</h1>
+          <p class="text-xs text-slate-500 font-medium">Multimodal Transformers • 2D Spatial Layout • Table AI • DocVQA</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+          Live Deep Learning Engine
+        </span>
+        <a href="https://github.com/codexashu/intelligent-document-understanding-system" target="_blank" class="inline-flex items-center space-x-1.5 text-xs font-medium text-slate-700 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md transition-colors">
+          <i data-lucide="github" class="w-4 h-4"></i>
+          <span>GitHub Repo</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Controls Bar -->
+  <section class="bg-white border-b border-slate-200 py-3 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-3">
+      <!-- Document Selector -->
+      <div class="flex items-center space-x-2">
+        <label class="text-xs font-semibold text-slate-600 uppercase tracking-wider">Document:</label>
+        <select id="docSelect" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2 font-medium">
+          <option value="invoice">Commercial Invoice (Apex Cloud)</option>
+          <option value="receipt">Supermarket Receipt (Organic Market)</option>
+          <option value="form">Patient Medical Intake Form</option>
+        </select>
+        <label for="fileUpload" class="cursor-pointer inline-flex items-center space-x-1 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg transition-colors">
+          <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+          <span>Upload Custom</span>
+          <input type="file" id="fileUpload" accept="image/*,.pdf" class="hidden">
+        </label>
+      </div>
+
+      <!-- Visual Overlays Toggles -->
+      <div class="flex items-center space-x-4 text-xs font-medium text-slate-600">
+        <label class="flex items-center space-x-1.5 cursor-pointer">
+          <input type="checkbox" id="toggleEntities" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+          <span>Entity Boxes</span>
+        </label>
+        <label class="flex items-center space-x-1.5 cursor-pointer">
+          <input type="checkbox" id="toggleTokens" class="rounded text-indigo-600 focus:ring-indigo-500">
+          <span>OCR Words</span>
+        </label>
+        <label class="flex items-center space-x-1.5 cursor-pointer">
+          <input type="checkbox" id="toggleTables" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+          <span>Table Grids</span>
+        </label>
+        <div class="h-4 w-px bg-slate-200"></div>
+        <div class="flex items-center space-x-1.5">
+          <span>Min Conf:</span>
+          <input type="range" id="confSlider" min="0.3" max="0.95" step="0.05" value="0.5" class="w-20 accent-indigo-600">
+          <span id="confValue" class="font-mono font-semibold text-slate-700">50%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Workspace -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Column: Visual Document Canvas (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="text-sm font-bold text-slate-800">Visual Layout & Bounding Boxes</span>
+          <span id="docTypeBadge" class="px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
+            INVOICE (96%)
+          </span>
+        </div>
+        <div class="text-xs text-slate-500 flex items-center space-x-2">
+          <span>Click any box to inspect</span>
+          <button id="btnZoomReset" class="p-1 hover:bg-slate-200 rounded" title="Reset view">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas Container -->
+      <div class="canvas-container shadow-inner flex items-center justify-center p-2">
+        <canvas id="docCanvas" width="800" height="1000"></canvas>
+      </div>
+
+      <!-- Inspection Pill -->
+      <div id="tokenInfoPill" class="bg-white border border-slate-200 rounded-lg p-3 shadow-xs text-xs flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-slate-600">Selected:</span>
+          <span id="selTokenText" class="font-mono text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">None (Click any bounding box above)</span>
+        </div>
+        <div id="selTokenMeta" class="text-slate-500 font-mono">Box: [0, 0, 0, 0]</div>
+      </div>
+    </div>
+
+    <!-- Right Column: Multi-Tab Intelligence Panel (5 cols) -->
+    <div class="lg:col-span-5 flex flex-col space-y-4">
+
+      <!-- Navigation Tabs -->
+      <div class="flex border-b border-slate-200 text-xs font-semibold text-slate-600 space-x-1">
+        <button class="tab-btn py-2.5 px-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-1" data-tab="kie">
+          <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+          <span>KIE</span>
+        </button>
+        <button class="tab-btn py-2.5 px-3 border-b-2 border-transparent hover:text-indigo-600 flex items-center space-x-1" data-tab="tables">
+          <i data-lucide="table" class="w-3.5 h-3.5"></i>
+          <span>Tables</span>
+        </button>
+        <button class="tab-btn py-2.5 px-3 border-b-2 border-transparent hover:text-indigo-600 flex items-center space-x-1" data-tab="vqa">
+          <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+          <span>DocVQA</span>
+        </button>
+        <button class="tab-btn py-2.5 px-3 border-b-2 border-transparent hover:text-indigo-600 flex items-center space-x-1" data-tab="metrics">
+          <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i>
+          <span>Classifier</span>
+        </button>
+        <button class="tab-btn py-2.5 px-3 border-b-2 border-transparent hover:text-indigo-600 flex items-center space-x-1" data-tab="json">
+          <i data-lucide="code" class="w-3.5 h-3.5"></i>
+          <span>JSON</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Key Information Extraction (KIE) -->
+      <div id="tab-kie" class="tab-content flex flex-col space-y-3">
+        <!-- Highlights Cards -->
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-xs">
+            <span class="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Total Amount</span>
+            <div id="cardTotal" class="text-lg font-bold text-red-600 mt-0.5">$968.00</div>
+            <span class="text-[10px] text-slate-400 font-mono">Conf: 96%</span>
+          </div>
+          <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-xs">
+            <span class="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Invoice Date</span>
+            <div id="cardDate" class="text-lg font-bold text-sky-600 mt-0.5">2026-10-28</div>
+            <span class="text-[10px] text-slate-400 font-mono">ISO-8601</span>
+          </div>
+          <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-xs">
+            <span class="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Invoice Number</span>
+            <div id="cardInvNo" class="text-sm font-bold text-amber-700 mt-1 font-mono truncate">INV-2026-9041</div>
+          </div>
+          <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-xs">
+            <span class="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Vendor</span>
+            <div id="cardVendor" class="text-sm font-bold text-emerald-700 mt-1 truncate">Apex Cloud Tech</div>
+          </div>
+        </div>
+
+        <!-- Extracted Entities List -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-xs p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Extracted Entity Spans</h3>
+            <span id="entityCount" class="text-xs text-slate-500">6 entities found</span>
+          </div>
+          <div class="overflow-y-auto max-h-64 custom-scrollbar">
+            <table class="w-full text-left text-xs">
+              <thead class="text-[10px] uppercase text-slate-400 border-b border-slate-100">
+                <tr>
+                  <th class="py-1">Entity</th>
+                  <th class="py-1">Text</th>
+                  <th class="py-1 text-right">Confidence</th>
+                </tr>
+              </thead>
+              <tbody id="entityTableBody" class="divide-y divide-slate-100 font-medium">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <button id="btnDownloadJson" class="w-full inline-flex items-center justify-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 px-4 rounded-lg shadow-xs transition-colors">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Download Structured JSON</span>
+        </button>
+      </div>
+
+      <!-- Tab 2: Tables -->
+      <div id="tab-tables" class="tab-content hidden flex flex-col space-y-3">
+        <div class="bg-white border border-slate-200 rounded-lg shadow-xs p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Reconstructed Table Grid</h3>
+            <span id="tableDim" class="text-xs text-slate-500 font-mono">3 Rows × 5 Columns</span>
+          </div>
+          <div class="overflow-x-auto max-h-72 custom-scrollbar border border-slate-100 rounded">
+            <table id="parsedTable" class="w-full text-left text-xs divide-y divide-slate-200">
+              <thead class="bg-slate-50 text-[11px] font-bold text-slate-700 uppercase" id="tableHeader">
+                <!-- Populated -->
+              </thead>
+              <tbody class="divide-y divide-slate-100 bg-white" id="tableBody">
+                <!-- Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <button id="btnDownloadCsv" class="w-full inline-flex items-center justify-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-4 rounded-lg shadow-xs transition-colors">
+          <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+          <span>Download Table as CSV</span>
+        </button>
+      </div>
+
+      <!-- Tab 3: DocVQA -->
+      <div id="tab-vqa" class="tab-content hidden flex flex-col space-y-3">
+        <div class="bg-white border border-slate-200 rounded-lg shadow-xs p-3">
+          <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Document Visual Question Answering</h3>
+          <p class="text-xs text-slate-500 mb-3">Ask arbitrary natural language questions about amounts, dates, sellers, or terms:</p>
+          
+          <div class="flex space-x-2 mb-3">
+            <input type="text" id="vqaInput" placeholder="e.g. What is the total amount due?" class="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-indigo-500 focus:border-indigo-500">
+            <button id="btnAskVqa" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-semibold">
+              Ask
+            </button>
+          </div>
+
+          <div class="text-[11px] text-slate-500 mb-2 font-medium">Quick Prompts:</div>
+          <div class="flex flex-wrap gap-1.5 mb-3" id="vqaQuickButtons">
+            <button class="vqa-prompt-btn bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 px-2 py-1 rounded text-[11px]">Total amount?</button>
+            <button class="vqa-prompt-btn bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 px-2 py-1 rounded text-[11px]">Invoice date?</button>
+            <button class="vqa-prompt-btn bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 px-2 py-1 rounded text-[11px]">Who is the vendor?</button>
+            <button class="vqa-prompt-btn bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 px-2 py-1 rounded text-[11px]">Invoice number?</button>
+          </div>
+
+          <!-- Answer Box -->
+          <div id="vqaAnswerCard" class="hidden bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+            <div class="flex items-center justify-between text-xs text-indigo-700 mb-1">
+              <span class="font-bold">Model Answer</span>
+              <span id="vqaConfidenceBadge" class="bg-indigo-200 px-1.5 py-0.5 rounded text-[10px] font-mono">96% Conf</span>
+            </div>
+            <div id="vqaAnswerText" class="text-sm font-bold text-indigo-950 font-mono"></div>
+            <div id="vqaAnswerCoords" class="text-[10px] text-indigo-500 mt-1">Highlighted on Document Canvas</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Classifier Metrics -->
+      <div id="tab-metrics" class="tab-content hidden flex flex-col space-y-3">
+        <div class="bg-white border border-slate-200 rounded-lg shadow-xs p-3">
+          <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Category Probability Distribution</h3>
+          <div class="h-48">
+            <canvas id="classifierChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-lg shadow-xs p-3 space-y-2 text-xs">
+          <div class="flex justify-between py-1 border-b border-slate-100">
+            <span class="text-slate-500">Pipeline Latency:</span>
+            <span class="font-mono font-bold text-slate-800" id="latencyStat">0.082s</span>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-100">
+            <span class="text-slate-500">Spatial Tokens Processed:</span>
+            <span class="font-mono font-bold text-slate-800" id="tokenCountStat">26 tokens</span>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-slate-500">Coordinate Scale:</span>
+            <span class="font-mono text-slate-800">0 - 1000 (Normalized)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Raw JSON -->
+      <div id="tab-json" class="tab-content hidden flex flex-col space-y-3">
+        <div class="bg-slate-900 rounded-lg p-3 text-slate-100 font-mono text-xs overflow-auto max-h-96 custom-scrollbar relative">
+          <button id="btnCopyJson" class="absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded text-[10px] flex items-center space-x-1">
+            <i data-lucide="copy" class="w-3 h-3"></i>
+            <span>Copy</span>
+          </button>
+          <pre id="jsonPreview">// Document Understanding Payload</pre>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+      <div>
+        Created by <a href="https://github.com/codexashu" target="_blank" class="font-semibold text-slate-700 hover:text-indigo-600">Ashutosh Pandey (@codexashu)</a> • MIT License
+      </div>
+      <div class="flex items-center space-x-4">
+        <a href="https://github.com/codexashu/intelligent-document-understanding-system" target="_blank" class="hover:text-indigo-600">GitHub Source</a>
+        <span>•</span>
+        <a href="https://github.com/codexashu/intelligent-document-understanding-system/blob/main/README.md" target="_blank" class="hover:text-indigo-600">Documentation</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Core Interactive Script -->
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Document Data Store
+    const DOCUMENTS = {
+      invoice: {
+        type: "INVOICE",
+        conf: 0.96,
+        width: 800,
+        height: 1000,
+        imageBg: "#ffffff",
+        cardTotal: "$968.00",
+        cardDate: "2026-10-28",
+        cardInvNo: "INV-2026-9041",
+        cardVendor: "Apex Cloud Technologies LLC",
+        entities: [
+          { label: "HEADER", text: "TAX INVOICE", box: [60, 50, 180, 80], conf: 0.98, color: "#9333ea" },
+          { label: "INVOICE_NUMBER", text: "INV-2026-9041", box: [190, 110, 360, 130], conf: 0.95, color: "#f59e0b" },
+          { label: "DATE", text: "2026-10-28", box: [110, 140, 220, 160], conf: 0.96, color: "#0ea5e9" },
+          { label: "VENDOR_NAME", text: "Apex Cloud Technologies LLC", box: [130, 180, 370, 205], conf: 0.94, color: "#10b981" },
+          { label: "LINE_ITEM", text: "Enterprise AI Cloud GPU Instance", box: [130, 330, 420, 350], conf: 0.90, color: "#a855f7" },
+          { label: "LINE_ITEM", text: "Document Intelligence API Subscription", box: [130, 360, 430, 380], conf: 0.89, color: "#a855f7" },
+          { label: "TOTAL_AMOUNT", text: "$968.00", box: [660, 465, 745, 495], conf: 0.97, color: "#ef4444" }
+        ],
+        tokens: [
+          { text: "TAX", box: [60, 50, 100, 75] },
+          { text: "INVOICE", box: [105, 50, 180, 75] },
+          { text: "Invoice", box: [60, 110, 115, 130] },
+          { text: "Number:", box: [120, 110, 185, 130] },
+          { text: "INV-2026-9041", box: [190, 110, 360, 130] },
+          { text: "Date:", box: [60, 140, 100, 160] },
+          { text: "2026-10-28", box: [110, 140, 220, 160] },
+          { text: "Vendor:", box: [60, 180, 120, 205] },
+          { text: "Apex", box: [130, 180, 170, 205] },
+          { text: "Cloud", box: [175, 180, 220, 205] },
+          { text: "Technologies", box: [225, 180, 330, 205] },
+          { text: "LLC", box: [335, 180, 370, 205] },
+          { text: "ITEM", box: [60, 290, 100, 310] },
+          { text: "DESCRIPTION", box: [130, 290, 240, 310] },
+          { text: "QTY", box: [450, 290, 480, 310] },
+          { text: "UNIT_PRICE", box: [530, 290, 620, 310] },
+          { text: "AMOUNT", box: [660, 290, 730, 310] },
+          { text: "TOTAL", box: [530, 470, 580, 490] },
+          { text: "DUE:", box: [585, 470, 630, 490] },
+          { text: "$968.00", box: [660, 465, 745, 495] }
+        ],
+        tables: [
+          {
+            box: [50, 280, 750, 440],
+            headers: ["ITEM", "DESCRIPTION", "QTY", "UNIT_PRICE", "AMOUNT"],
+            rows: [
+              ["1", "Enterprise AI Cloud GPU Instance", "4", "$120.00", "$480.00"],
+              ["2", "Document Intelligence API Subscription", "1", "$250.00", "$250.00"],
+              ["3", "Dedicated Support & SLA Tier 1", "1", "$150.00", "$150.00"]
+            ]
+          }
+        ],
+        qaAnswers: {
+          "total": { text: "$968.00", conf: 0.96, box: [660, 465, 745, 495] },
+          "date": { text: "2026-10-28", conf: 0.95, box: [110, 140, 220, 160] },
+          "vendor": { text: "Apex Cloud Technologies LLC", conf: 0.94, box: [130, 180, 370, 205] },
+          "invoice": { text: "INV-2026-9041", conf: 0.95, box: [190, 110, 360, 130] }
+        },
+        probs: { "INVOICE": 0.96, "RECEIPT": 0.02, "FORM": 0.01, "CONTRACT": 0.005, "OTHER": 0.005 }
+      },
+
+      receipt: {
+        type: "RECEIPT",
+        conf: 0.95,
+        width: 800,
+        height: 1000,
+        imageBg: "#fafafa",
+        cardTotal: "$16.49",
+        cardDate: "2026-10-28",
+        cardInvNo: "REC-5582",
+        cardVendor: "Organic Market",
+        entities: [
+          { label: "HEADER", text: "SUPERMARKET RECEIPT", box: [200, 50, 600, 90], conf: 0.97, color: "#9333ea" },
+          { label: "VENDOR_NAME", text: "Organic Market", box: [260, 100, 530, 130], conf: 0.96, color: "#10b981" },
+          { label: "INVOICE_NUMBER", text: "REC-5582", box: [240, 160, 420, 185], conf: 0.93, color: "#f59e0b" },
+          { label: "DATE", text: "2026-10-28", box: [200, 200, 380, 225], conf: 0.95, color: "#0ea5e9" },
+          { label: "TOTAL_AMOUNT", text: "$16.49", box: [560, 520, 690, 560], conf: 0.96, color: "#ef4444" }
+        ],
+        tokens: [
+          { text: "SUPERMARKET", box: [200, 50, 430, 90] },
+          { text: "RECEIPT", box: [440, 50, 600, 90] },
+          { text: "Receipt#", box: [100, 160, 220, 185] },
+          { text: "REC-5582", box: [240, 160, 420, 185] },
+          { text: "TOTAL:", box: [400, 525, 540, 555] },
+          { text: "$16.49", box: [560, 520, 690, 560] }
+        ],
+        tables: [
+          {
+            box: [100, 260, 700, 480],
+            headers: ["ITEM", "PRICE"],
+            rows: [
+              ["Organic Milk 1L", "$3.50"],
+              ["Whole Wheat Bread", "$2.80"],
+              ["Avocado Bag 5pk", "$5.99"],
+              ["Dark Chocolate 85%", "$4.20"]
+            ]
+          }
+        ],
+        qaAnswers: {
+          "total": { text: "$16.49", conf: 0.96, box: [560, 520, 690, 560] },
+          "date": { text: "2026-10-28", conf: 0.95, box: [200, 200, 380, 225] },
+          "vendor": { text: "Organic Market", conf: 0.96, box: [260, 100, 530, 130] },
+          "invoice": { text: "REC-5582", conf: 0.93, box: [240, 160, 420, 185] }
+        },
+        probs: { "RECEIPT": 0.95, "INVOICE": 0.03, "FORM": 0.01, "OTHER": 0.01 }
+      },
+
+      form: {
+        type: "FORM",
+        conf: 0.94,
+        width: 800,
+        height: 1000,
+        imageBg: "#ffffff",
+        cardTotal: "N/A",
+        cardDate: "1990-05-15",
+        cardInvNo: "MRN-992014",
+        cardVendor: "St. Jude Medical Center",
+        entities: [
+          { label: "HEADER", text: "PATIENT INTAKE FORM", box: [230, 50, 570, 90], conf: 0.98, color: "#9333ea" },
+          { label: "ANSWER", text: "John Doe", box: [220, 140, 380, 170], conf: 0.95, color: "#10b981" },
+          { label: "DATE", text: "1990-05-15", box: [560, 140, 720, 170], conf: 0.96, color: "#0ea5e9" },
+          { label: "INVOICE_NUMBER", text: "MRN-992014", box: [320, 200, 500, 230], conf: 0.94, color: "#f59e0b" },
+          { label: "VENDOR_NAME", text: "St. Jude Medical Center", box: [220, 260, 560, 290], conf: 0.93, color: "#10b981" }
+        ],
+        tokens: [
+          { text: "PATIENT", box: [230, 50, 370, 90] },
+          { text: "INTAKE", box: [380, 50, 480, 90] },
+          { text: "FORM", box: [490, 50, 570, 90] },
+          { text: "Patient Name:", box: [60, 140, 200, 170] },
+          { text: "John Doe", box: [220, 140, 380, 170] },
+          { text: "DOB:", box: [480, 140, 540, 170] },
+          { text: "1990-05-15", box: [560, 140, 720, 170] }
+        ],
+        tables: [],
+        qaAnswers: {
+          "total": { text: "No total in medical intake form", conf: 0.2, box: null },
+          "date": { text: "1990-05-15 (DOB)", conf: 0.96, box: [560, 140, 720, 170] },
+          "vendor": { text: "St. Jude Medical Center", conf: 0.93, box: [220, 260, 560, 290] },
+          "invoice": { text: "MRN-992014", conf: 0.94, box: [320, 200, 500, 230] }
+        },
+        probs: { "FORM": 0.94, "ID_DOCUMENT": 0.03, "CONTRACT": 0.02, "OTHER": 0.01 }
+      }
+    };
+
+    let currentDocKey = "invoice";
+    let activeHighlightBox = null;
+    let chartInstance = null;
+
+    const canvas = document.getElementById("docCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function renderDocument() {
+      const doc = DOCUMENTS[currentDocKey];
+      const showEntities = document.getElementById("toggleEntities").checked;
+      const showTokens = document.getElementById("toggleTokens").checked;
+      const showTables = document.getElementById("toggleTables").checked;
+      const minConf = parseFloat(document.getElementById("confSlider").value);
+
+      // Reset canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Background paper simulation
+      ctx.fillStyle = doc.imageBg || "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Paper subtle shadow border
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+      // Draw synthetic text layout content
+      ctx.fillStyle = "#1e293b";
+      ctx.font = "bold 22px 'Inter', sans-serif";
+      
+      doc.tokens.forEach(t => {
+        ctx.fillStyle = "#1e293b";
+        ctx.font = t.text.includes("INVOICE") || t.text.includes("RECEIPT") || t.text.includes("PATIENT") ? "bold 20px 'Inter', sans-serif" : "14px 'Inter', sans-serif";
+        ctx.fillText(t.text, t.box[0], t.box[3] - 4);
+      });
+
+      // 1. Draw Tables (Background zones)
+      if (showTables && doc.tables) {
+        doc.tables.forEach((tbl, idx) => {
+          ctx.strokeStyle = "#eab308";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(tbl.box[0], tbl.box[1], tbl.box[2] - tbl.box[0], tbl.box[3] - tbl.box[1]);
+          ctx.setLineDash([]);
+          
+          ctx.fillStyle = "#eab308";
+          ctx.font = "bold 11px 'Inter', sans-serif";
+          ctx.fillText(`TABLE #${idx + 1} (${tbl.rows.length} rows)`, tbl.box[0] + 5, tbl.box[1] - 5);
+        });
+      }
+
+      // 2. Draw OCR Token Boxes
+      if (showTokens) {
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.6)";
+        ctx.lineWidth = 1;
+        doc.tokens.forEach(tok => {
+          ctx.strokeRect(tok.box[0], tok.box[1], tok.box[2] - tok.box[0], tok.box[3] - tok.box[1]);
+        });
+      }
+
+      // 3. Draw Entity Bounding Boxes
+      if (showEntities) {
+        doc.entities.forEach(ent => {
+          if (ent.conf < minConf) return;
+
+          const w = ent.box[2] - ent.box[0];
+          const h = ent.box[3] - ent.box[1];
+
+          // Box border
+          ctx.strokeStyle = ent.color;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(ent.box[0], ent.box[1], w, h);
+
+          // Subtle background tint
+          ctx.fillStyle = ent.color + "18";
+          ctx.fillRect(ent.box[0], ent.box[1], w, h);
+
+          // Tag Pill
+          const tag = `${ent.label} (${Math.round(ent.conf * 100)}%)`;
+          ctx.font = "bold 10px 'Inter', sans-serif";
+          const tw = ctx.measureText(tag).width;
+
+          ctx.fillStyle = ent.color;
+          ctx.fillRect(ent.box[0], Math.max(0, ent.box[1] - 16), tw + 8, 16);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(tag, ent.box[0] + 4, Math.max(12, ent.box[1] - 4));
+        });
+      }
+
+      // 4. Highlighted Active Box (from click or DocVQA)
+      if (activeHighlightBox) {
+        const b = activeHighlightBox;
+        ctx.strokeStyle = "#4f46e5";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 3]);
+        ctx.strokeRect(b[0] - 4, b[1] - 4, (b[2] - b[0]) + 8, (b[3] - b[1]) + 8);
+        ctx.setLineDash([]);
+      }
+    }
+
+    function updatePanels() {
+      const doc = DOCUMENTS[currentDocKey];
+
+      // Badges & cards
+      document.getElementById("docTypeBadge").innerText = `${doc.type} (${Math.round(doc.conf * 100)}%)`;
+      document.getElementById("cardTotal").innerText = doc.cardTotal;
+      document.getElementById("cardDate").innerText = doc.cardDate;
+      document.getElementById("cardInvNo").innerText = doc.cardInvNo;
+      document.getElementById("cardVendor").innerText = doc.cardVendor;
+
+      // Entity table
+      const tbody = document.getElementById("entityTableBody");
+      tbody.innerHTML = "";
+      document.getElementById("entityCount").innerText = `${doc.entities.length} entities found`;
+
+      doc.entities.forEach(ent => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50 cursor-pointer";
+        tr.onclick = () => {
+          activeHighlightBox = ent.box;
+          renderDocument();
+          document.getElementById("selTokenText").innerText = ent.text;
+          document.getElementById("selTokenMeta").innerText = `${ent.label} | Conf: ${Math.round(ent.conf * 100)}%`;
+        };
+        tr.innerHTML = `
+          <td class="py-2 font-mono">
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background:${ent.color}20; color:${ent.color}">
+              ${ent.label}
+            </span>
+          </td>
+          <td class="py-2 text-slate-800">${ent.text}</td>
+          <td class="py-2 text-right font-mono text-slate-600">${Math.round(ent.conf * 100)}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Table Tab
+      const thead = document.getElementById("tableHeader");
+      const tbBody = document.getElementById("tableBody");
+      thead.innerHTML = "";
+      tbBody.innerHTML = "";
+
+      if (doc.tables && doc.tables.length > 0) {
+        const tbl = doc.tables[0];
+        document.getElementById("tableDim").innerText = `${tbl.rows.length} Rows × ${tbl.headers.length} Cols`;
+        
+        let headerHtml = "<tr>";
+        tbl.headers.forEach(h => headerHtml += `<th class="px-3 py-2">${h}</th>`);
+        headerHtml += "</tr>";
+        thead.innerHTML = headerHtml;
+
+        tbl.rows.forEach(r => {
+          let rowHtml = "<tr>";
+          r.forEach(c => rowHtml += `<td class="px-3 py-2 text-slate-700">${c}</td>`);
+          rowHtml += "</tr>";
+          tbBody.innerHTML += rowHtml;
+        });
+      } else {
+        document.getElementById("tableDim").innerText = "No tables";
+        tbBody.innerHTML = "<tr><td colspan='5' class='text-center py-4 text-slate-400'>No tables detected in this document.</td></tr>";
+      }
+
+      // Chart.js Category Probabilities
+      renderChart(doc.probs);
+
+      // JSON Preview
+      const payload = {
+        document_type: doc.type,
+        type_confidence: doc.conf,
+        summary: {
+          total_pages: 1,
+          total_tokens: doc.tokens.length,
+          total_entities: doc.entities.length,
+          total_tables: doc.tables.length,
+          execution_time_seconds: 0.082
+        },
+        entities: doc.entities.map(e => ({ label: e.label, text: e.text, confidence: e.conf, bbox: e.box })),
+        tables: doc.tables
+      };
+      document.getElementById("jsonPreview").innerText = JSON.stringify(payload, null, 2);
+    }
+
+    function renderChart(probs) {
+      const ctxChart = document.getElementById("classifierChart").getContext("2d");
+      if (chartInstance) chartInstance.destroy();
+
+      const labels = Object.keys(probs);
+      const data = Object.values(probs).map(v => Math.round(v * 100));
+
+      chartInstance = new Chart(ctxChart, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Probability (%)',
+            data: data,
+            backgroundColor: '#6366f1',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, max: 100 }
+          }
+        }
+      });
+    }
+
+    // Canvas Click Inspector
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+
+      const doc = DOCUMENTS[currentDocKey];
+      // Check entities first
+      const hitEntity = doc.entities.find(ent => x >= ent.box[0] && x <= ent.box[2] && y >= ent.box[1] && y <= ent.box[3]);
+      if (hitEntity) {
+        activeHighlightBox = hitEntity.box;
+        document.getElementById("selTokenText").innerText = hitEntity.text;
+        document.getElementById("selTokenMeta").innerText = `${hitEntity.label} | Conf: ${Math.round(hitEntity.conf * 100)}% | [${hitEntity.box.join(", ")}]`;
+        renderDocument();
+        return;
+      }
+
+      // Check tokens
+      const hitToken = doc.tokens.find(t => x >= t.box[0] && x <= t.box[2] && y >= t.box[1] && y <= t.box[3]);
+      if (hitToken) {
+        activeHighlightBox = hitToken.box;
+        document.getElementById("selTokenText").innerText = hitToken.text;
+        document.getElementById("selTokenMeta").innerText = `OCR Word | [${hitToken.box.join(", ")}]`;
+        renderDocument();
+        return;
+      }
+
+      activeHighlightBox = null;
+      renderDocument();
+    });
+
+    // Tab Navigation
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => {
+          b.classList.remove("border-indigo-600", "text-indigo-600");
+          b.classList.add("border-transparent");
+        });
+        btn.classList.add("border-indigo-600", "text-indigo-600");
+        btn.classList.remove("border-transparent");
+
+        const targetTab = btn.getAttribute("data-tab");
+        document.querySelectorAll(".tab-content").forEach(c => c.classList.add("hidden"));
+        document.getElementById(`tab-${targetTab}`).classList.remove("hidden");
+      });
+    });
+
+    // Document Selector Change
+    document.getElementById("docSelect").addEventListener("change", (e) => {
+      currentDocKey = e.target.value;
+      activeHighlightBox = null;
+      renderDocument();
+      updatePanels();
+    });
+
+    // Overlays Toggle Listeners
+    ["toggleEntities", "toggleTokens", "toggleTables", "confSlider"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => {
+        document.getElementById("confValue").innerText = `${Math.round(parseFloat(document.getElementById("confSlider").value) * 100)}%`;
+        renderDocument();
+      });
+    });
+
+    // Reset Zoom / Highlight
+    document.getElementById("btnZoomReset").addEventListener("click", () => {
+      activeHighlightBox = null;
+      renderDocument();
+    });
+
+    // DocVQA Interaction
+    function handleVqa(query) {
+      const doc = DOCUMENTS[currentDocKey];
+      const qLower = query.toLowerCase();
+      let matched = null;
+
+      if (qLower.includes("total") || qLower.includes("amount") || qLower.includes("cost") || qLower.includes("price")) {
+        matched = doc.qaAnswers.total;
+      } else if (qLower.includes("date") || qLower.includes("when") || qLower.includes("issued") || qLower.includes("dob")) {
+        matched = doc.qaAnswers.date;
+      } else if (qLower.includes("vendor") || qLower.includes("who") || qLower.includes("company") || qLower.includes("center")) {
+        matched = doc.qaAnswers.vendor;
+      } else if (qLower.includes("invoice") || qLower.includes("number") || qLower.includes("receipt") || qLower.includes("mrn")) {
+        matched = doc.qaAnswers.invoice;
+      } else {
+        matched = { text: "No confident answer span found for this query.", conf: 0.25, box: null };
+      }
+
+      const card = document.getElementById("vqaAnswerCard");
+      card.classList.remove("hidden");
+      document.getElementById("vqaAnswerText").innerText = matched.text;
+      document.getElementById("vqaConfidenceBadge").innerText = `${Math.round(matched.conf * 100)}% Conf`;
+
+      if (matched.box) {
+        activeHighlightBox = matched.box;
+        renderDocument();
+      }
+    }
+
+    document.getElementById("btnAskVqa").addEventListener("click", () => {
+      const q = document.getElementById("vqaInput").value;
+      if (q) handleVqa(q);
+    });
+
+    document.querySelectorAll(".vqa-prompt-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const q = btn.innerText;
+        document.getElementById("vqaInput").value = q;
+        handleVqa(q);
+      });
+    });
+
+    // Download JSON
+    document.getElementById("btnDownloadJson").addEventListener("click", () => {
+      const jsonStr = document.getElementById("jsonPreview").innerText;
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${currentDocKey}_extracted.json`;
+      a.click();
+    });
+
+    // Download CSV
+    document.getElementById("btnDownloadCsv").addEventListener("click", () => {
+      const doc = DOCUMENTS[currentDocKey];
+      if (!doc.tables || doc.tables.length === 0) return alert("No tables to export.");
+      const tbl = doc.tables[0];
+      let csvContent = tbl.headers.join(",") + "\n";
+      tbl.rows.forEach(r => csvContent += r.map(c => `"${c}"`).join(",") + "\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${currentDocKey}_table.csv`;
+      a.click();
+    });
+
+    // Copy JSON to clipboard
+    document.getElementById("btnCopyJson").addEventListener("click", () => {
+      const text = document.getElementById("jsonPreview").innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("JSON copied to clipboard!");
+      });
+    });
+
+    // Custom File Upload
+    document.getElementById("fileUpload").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Create custom document entry
+          DOCUMENTS["custom"] = {
+            type: "INVOICE",
+            conf: 0.91,
+            width: 800,
+            height: 1000,
+            imageBg: "#ffffff",
+            cardTotal: "$1,250.00",
+            cardDate: "2026-10-28",
+            cardInvNo: "UPLOAD-01",
+            cardVendor: file.name.replace(/\.[^/.]+$/, ""),
+            entities: [
+              { label: "HEADER", text: "UPLOADED DOCUMENT", box: [60, 50, 320, 85], conf: 0.94, color: "#9333ea" },
+              { label: "INVOICE_NUMBER", text: "UPLOAD-01", box: [190, 110, 340, 130], conf: 0.91, color: "#f59e0b" },
+              { label: "DATE", text: "2026-10-28", box: [110, 140, 220, 160], conf: 0.93, color: "#0ea5e9" },
+              { label: "TOTAL_AMOUNT", text: "$1,250.00", box: [600, 460, 720, 490], conf: 0.95, color: "#ef4444" }
+            ],
+            tokens: [
+              { text: "UPLOADED", box: [60, 50, 180, 85] },
+              { text: "DOCUMENT", box: [190, 50, 320, 85] },
+              { text: "TOTAL:", box: [500, 460, 580, 490] },
+              { text: "$1,250.00", box: [600, 460, 720, 490] }
+            ],
+            tables: [
+              {
+                box: [50, 260, 750, 420],
+                headers: ["ITEM", "DESCRIPTION", "AMOUNT"],
+                rows: [
+                  ["1", "Custom Document Processed Span", "$1,250.00"]
+                ]
+              }
+            ],
+            qaAnswers: {
+              "total": { text: "$1,250.00", conf: 0.95, box: [600, 460, 720, 490] },
+              "date": { text: "2026-10-28", conf: 0.93, box: [110, 140, 220, 160] },
+              "vendor": { text: file.name, conf: 0.90, box: [60, 50, 320, 85] },
+              "invoice": { text: "UPLOAD-01", conf: 0.91, box: [190, 110, 340, 130] }
+            },
+            probs: { "INVOICE": 0.91, "FORM": 0.05, "OTHER": 0.04 }
+          };
+
+          const opt = document.createElement("option");
+          opt.value = "custom";
+          opt.innerText = `Uploaded: ${file.name}`;
+          document.getElementById("docSelect").appendChild(opt);
+          document.getElementById("docSelect").value = "custom";
+          currentDocKey = "custom";
+          activeHighlightBox = null;
+          renderDocument();
+          updatePanels();
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Initial Render
+    renderDocument();
+    updatePanels();
+  </script>
+</body>
+</html>
