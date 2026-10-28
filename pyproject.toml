@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intelligent-document-understanding-system"
+version = "1.0.0"
+description = "End-to-End Deep Learning System for Document Layout Analysis, Key Information Extraction, Table Parsing, and DocVQA"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Ashutosh Pandey", email = "pandeyashutosh082007@gmail.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v"
